@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Only Simple Time</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: #fff; /* Default: White background */
+      color: #000; /* Default: Black text */
+      font-family: Arial, sans-serif;
+      overflow: hidden;
+      position: relative;
+    }
+
+    #clock {
+      font-size: 15vw; /* Large responsive text size for time */
+      text-align: center;
+    }
+
+    #date {
+      font-size: 3vw; /* Smaller font size for the date */
+      text-align: center;
+      margin-top: -10px; /* Slight adjustment to spacing */
+    }
+
+    #year {
+      font-size: 3vw; /* Same size as the date */
+      text-align: center;
+      margin-top: -5px; /* Slight adjustment to spacing */
+    }
+
+    .button-container {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .button-container button,
+    .button-container select {
+      padding: 10px;
+      font-size: 16px;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+      white-space: nowrap;
+    }
+
+    .theme-button, .format-button, #timezoneSelector {
+      background-color: #000;
+      color: #fff;
+    }
+
+    .theme-button:hover, .format-button:hover, #timezoneSelector:hover {
+      opacity: 0.8;
+    }
+
+    #timezoneSelector {
+      width: auto; /* Allow the width to adjust dynamically */
+    }
+  </style>
+</head>
+<body>
+  <div class="button-container">
+    <button id="toggleTheme" class="theme-button">Toggle Theme</button>
+    <button id="toggleFormat" class="format-button">24-Hour Mode</button>
+    <select id="timezoneSelector" class="format-button">
+      <!-- Time zones will be dynamically populated -->
+    </select>
+  </div>
+  <div id="clock"></div>
+  <div id="date"></div>
+  <div id="year"></div>
+
+  <script>
+    let themeIndex = 0; // Tracks the current theme (0: white, 1: black, 2: blue)
+    let is24HourFormat = false; // Tracks the clock format (false: 12-hour, true: 24-hour)
+    let selectedTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone; // Default to local time zone
+
+    function updateClockAndDate() {
+      const clockElement = document.getElementById('clock');
+      const dateElement = document.getElementById('date');
+      const yearElement = document.getElementById('year');
+      const now = new Date();
+
+      // Convert to selected time zone
+      const options = { timeZone: selectedTimeZone, hour12: !is24HourFormat };
+      const timeParts = new Intl.DateTimeFormat('en-US', {
+        ...options,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      }).formatToParts(now);
+
+      // Build the time string
+      let timeString = '';
+      for (let i = 0; i < timeParts.length; i++) {
+        const part = timeParts[i];
+        if (part.type === 'hour' || part.type === 'minute' || part.type === 'second') {
+          timeString += part.value;
+        } else if (part.type === 'literal' && timeParts[i - 1]?.type !== 'second') {
+          // Include colons only after hours and minutes
+          timeString += ':';
+        } else if (part.type === 'dayPeriod') {
+          // Add a space before AM/PM
+          timeString += ` ${part.value}`;
+        }
+      }
+      clockElement.textContent = timeString.trim();
+
+      // Build the date string
+      const dateOptions = {
+        timeZone: selectedTimeZone,
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+      };
+      const dayWithSuffix = new Intl.DateTimeFormat('en-US', dateOptions)
+        .formatToParts(now)
+        .map((part) => {
+          if (part.type === 'day') {
+            const day = parseInt(part.value, 10);
+            const suffix = day % 10 === 1 && day !== 11 ? 'st' :
+                           day % 10 === 2 && day !== 12 ? 'nd' :
+                           day % 10 === 3 && day !== 13 ? 'rd' : 'th';
+            return `${part.value}${suffix}`;
+          }
+          return part.value;
+        })
+        .join('');
+      dateElement.textContent = dayWithSuffix;
+
+      // Display the year
+      yearElement.textContent = now.getFullYear();
+    }
+
+    function toggleTheme() {
+      const body = document.body;
+      const themeButton = document.getElementById('toggleTheme');
+      const formatButton = document.getElementById('toggleFormat');
+      const timezoneSelector = document.getElementById('timezoneSelector');
+      themeIndex = (themeIndex + 1) % 3; // Cycle through themes
+
+      if (themeIndex === 0) {
+        // White background, black text
+        body.style.background = 'white';
+        body.style.color = 'black';
+        themeButton.style.backgroundColor = 'black';
+        themeButton.style.color = 'white';
+        formatButton.style.backgroundColor = 'black';
+        formatButton.style.color = 'white';
+        timezoneSelector.style.backgroundColor = 'black';
+        timezoneSelector.style.color = 'white';
+      } else if (themeIndex === 1) {
+        // Black background, white text
+        body.style.background = 'black';
+        body.style.color = 'white';
+        themeButton.style.backgroundColor = 'white';
+        themeButton.style.color = 'black';
+        formatButton.style.backgroundColor = 'white';
+        formatButton.style.color = 'black';
+        timezoneSelector.style.backgroundColor = 'white';
+        timezoneSelector.style.color = 'black';
+      } else if (themeIndex === 2) {
+        // High contrast: Blue background, bright yellow text
+        body.style.background = '#0033cc'; // Deep blue
+        body.style.color = '#ffff00'; // Bright yellow
+        themeButton.style.backgroundColor = '#ffff00'; // Bright yellow
+        themeButton.style.color = '#0033cc'; // Deep blue
+        formatButton.style.backgroundColor = '#ffff00'; // Bright yellow
+        formatButton.style.color = '#0033cc'; // Deep blue
+        timezoneSelector.style.backgroundColor = '#ffff00'; // Bright yellow
+        timezoneSelector.style.color = '#0033cc'; // Deep blue
+      }
+    }
+
+    function toggleFormat() {
+      const formatButton = document.getElementById('toggleFormat');
+      is24HourFormat = !is24HourFormat;
+      formatButton.textContent = is24HourFormat ? '12-Hour Mode' : '24-Hour Mode';
+      updateClockAndDate(); // Update the clock immediately to reflect the change
+    }
+
+    function populateTimeZones() {
+      const timezoneSelector = document.getElementById('timezoneSelector');
+      const timeZones = Intl.supportedValuesOf("timeZone");
+      timeZones.forEach((zone) => {
+        const option = document.createElement('option');
+        option.value = zone;
+        option.textContent = zone;
+        timezoneSelector.appendChild(option);
+      });
+      timezoneSelector.value = selectedTimeZone;
+
+      // Adjust the width of the dropdown to fit the selected option
+      adjustDropdownWidth(timezoneSelector);
+    }
+
+    function changeTimeZone(event) {
+      const timezoneSelector = event.target;
+      selectedTimeZone = timezoneSelector.value;
+      updateClockAndDate(); // Update the clock immediately to reflect the change
+
+      // Adjust the width of the dropdown to fit the selected option
+      adjustDropdownWidth(timezoneSelector);
+    }
+
+    function adjustDropdownWidth(dropdown) {
+      // Create a temporary element to calculate the width of the selected option
+      const temp = document.createElement('span');
+      temp.style.visibility = 'hidden';
+      temp.style.position = 'absolute';
+      temp.style.fontSize = getComputedStyle(dropdown).fontSize;
+      temp.style.padding = getComputedStyle(dropdown).padding;
+      temp.textContent = dropdown.options[dropdown.selectedIndex].textContent;
+      document.body.appendChild(temp);
+
+      // Adjust the dropdown width based on the temporary element's width
+      dropdown.style.width = `${temp.offsetWidth + 20}px`; // Add a cushion of 20px
+      document.body.removeChild(temp);
+    }
+
+    // Populate time zones on page load
+    populateTimeZones();
+
+    // Attach toggle functions to buttons and dropdown
+    document.getElementById('toggleTheme').addEventListener('click', toggleTheme);
+    document.getElementById('toggleFormat').addEventListener('click', toggleFormat);
+    document.getElementById('timezoneSelector').addEventListener('change', changeTimeZone);
+
+    // Update the clock and date every second
+    setInterval(updateClockAndDate, 1000);
+    // Initialize clock and date immediately
+    updateClockAndDate();
+  </script>
+</body>
+</html>
